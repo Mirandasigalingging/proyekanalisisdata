@@ -3,62 +3,80 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+# Load data
 @st.cache_data
 def load_data():
     day_df = pd.read_csv("day.csv") 
-    hour_df = pd.read_csv("hour.csv")
-    return day_df, hour_df
+    return day_df
 
-day_df, hour_df = load_data()
+day_df = load_data()
 
 st.title("🚴 Dashboard Analisis Penyewaan Sepeda")
 
-dataset_choice = st.sidebar.radio("Pilih Visualisasi", ["Tren Bulanan (Cuaca)", "Pola Per Jam (Hari Kerja vs Akhir Pekan)"])
+# Sidebar menu
+dataset_choice = st.sidebar.radio(
+    "Pilih Visualisasi", 
+    [
+        "Binning Jumlah Penyewaan", 
+        "Grouping Musiman"
+    ]
+)
 
-if dataset_choice == "Tren Bulanan (Cuaca)":
-    st.subheader("📅 Tren Penyewaan Sepeda Bulanan Berdasarkan Cuaca")
+# 1️⃣ **Binning Jumlah Penyewaan**
+if dataset_choice == "Binning Jumlah Penyewaan":
+    st.subheader("📊 Kategorisasi Penyewaan Sepeda (Binning)")
 
-    plt.figure(figsize=(10, 5))
-    palette = {1: 'blue', 2: 'gray', 3: 'red'}
-    sns.lineplot(x='mnth', y='cnt', hue='weathersit', data=day_df, palette=palette)
+    # Binning jumlah penyewaan
+    bins = [0, 3000, 5000, 7000]
+    labels = ['Rendah', 'Sedang', 'Tinggi']
+    day_df['Kategori_Penyewaan'] = pd.cut(day_df['cnt'], bins=bins, labels=labels)
 
-    plt.title('Tren Penyewaan Sepeda Tiap Bulan Berdasarkan Cuaca')
-    plt.xlabel('Bulan')
-    plt.ylabel('Jumlah Penyewaan')
+    plt.figure(figsize=(8, 5))
+    sns.countplot(x="Kategori_Penyewaan", data=day_df, palette="viridis")
 
-    weather_labels = {1: 'Cerah', 2: 'Mendung', 3: 'Hujan'}
-    handles, labels = plt.gca().get_legend_handles_labels()
-    labels = [weather_labels[int(label)] for label in labels]
-    plt.legend(handles, labels, title='Kondisi Cuaca')
+    plt.title("Distribusi Kategori Penyewaan Sepeda")
+    plt.xlabel("Kategori Penyewaan")
+    plt.ylabel("Jumlah Hari")
 
     st.pyplot(plt)
 
     st.subheader("📌 Kesimpulan")
     st.write("""
-    - Penyewaan sepeda meningkat saat cuaca **cerah** dan menurun ketika **hujan**.
-    - Bulan dengan penyewaan tertinggi kemungkinan terjadi di musim liburan atau musim panas.
-    - Kondisi cuaca sangat berpengaruh terhadap jumlah penyewaan.
+    - Mayoritas hari memiliki penyewaan dalam kategori **sedang**.
+    - Penyewaan **rendah dan tinggi lebih jarang terjadi** dibandingkan kategori sedang.
     """)
 
-elif dataset_choice == "Pola Per Jam (Hari Kerja vs Akhir Pekan)":
-    st.subheader("⏰ Pola Penggunaan Sepeda Per Jam (Hari Kerja vs Akhir Pekan)")
+# 2️⃣ **Grouping Musiman**
+elif dataset_choice == "Grouping Musiman":
+    st.subheader("🌦️ Pola Penyewaan Berdasarkan Musim (Manual Grouping)")
 
-    plt.figure(figsize=(12, 6))
-    ax = sns.lineplot(x='hr', y='cnt', hue='workingday', data=hour_df, palette={0: 'orange', 1: 'blue'})
+    # Fungsi manual grouping musim
+    def season(month):
+        if month in [12, 1, 2]:
+            return 'Hujan'
+        elif month in [3, 4, 5]:
+            return 'Peralihan ke Kemarau'
+        elif month in [6, 7, 8, 9]:
+            return 'Kemarau'
+        else:
+            return 'Peralihan ke Hujan'
 
-    legend_labels = ['Akhir Pekan', 'Hari Kerja']
-    for t, l in zip(ax.legend_.texts, legend_labels):
-        t.set_text(l)
+    day_df['Musim'] = day_df['mnth'].apply(season)
 
-    plt.title('Pola Penggunaan Sepeda per Jam antara Hari Kerja dan Akhir Pekan')
-    plt.xlabel('Jam')
-    plt.ylabel('Jumlah Penyewaan')
+    plt.figure(figsize=(8, 5))
+    sns.boxplot(x='Musim', y='cnt', data=day_df, palette="coolwarm")
+
+    plt.title("Distribusi Penyewaan Sepeda Berdasarkan Musim")
+    plt.xlabel("Musim")
+    plt.ylabel("Jumlah Penyewaan")
+
     st.pyplot(plt)
 
     st.subheader("📌 Kesimpulan")
     st.write("""
-    - Pada **hari kerja**, ada dua puncak penyewaan: **pagi & sore hari** (kemungkinan besar terkait perjalanan kerja/sekolah).
-    - Pada **akhir pekan**, puncak penyewaan terjadi lebih **siang**, menunjukkan penggunaan lebih banyak untuk rekreasi.
+    - Penyewaan **lebih tinggi saat musim kemarau**.
+    - Saat musim hujan, jumlah penyewaan **cenderung lebih rendah**.
+    - Musim peralihan menunjukkan tren bervariasi.
     """)
 
 st.sidebar.markdown("💡 **Tip:** Pilih visualisasi di sidebar untuk melihat analisisnya.")
