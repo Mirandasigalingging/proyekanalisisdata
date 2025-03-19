@@ -3,101 +3,62 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-# Load data
 @st.cache_data
 def load_data():
     day_df = pd.read_csv("day.csv") 
-    return day_df
+    hour_df = pd.read_csv("hour.csv")
+    return day_df, hour_df
 
-day_df = load_data()
+day_df, hour_df = load_data()
 
 st.title("🚴 Dashboard Analisis Penyewaan Sepeda")
 
-# 1️⃣ **Distribusi Penyewaan Sepeda berdasarkan Hari**
-st.subheader("📅 Distribusi Penyewaan Sepeda berdasarkan Hari")
+dataset_choice = st.sidebar.radio("Pilih Visualisasi", ["Tren Bulanan (Cuaca)", "Pola Per Jam (Hari Kerja vs Akhir Pekan)"])
 
-plt.figure(figsize=(8, 5))
-sns.histplot(day_df['cnt'], bins=30, kde=True, color='blue')
-plt.title("Distribusi Penyewaan Sepeda")
-plt.xlabel("Jumlah Penyewaan")
-plt.ylabel("Frekuensi")
+if dataset_choice == "Tren Bulanan (Cuaca)":
+    st.subheader("📅 Tren Penyewaan Sepeda Bulanan Berdasarkan Cuaca")
 
-st.pyplot(plt)
+    plt.figure(figsize=(10, 5))
+    palette = {1: 'blue', 2: 'gray', 3: 'red'}
+    sns.lineplot(x='mnth', y='cnt', hue='weathersit', data=day_df, palette=palette)
 
-st.subheader("📌 Kesimpulan")
-st.write("""
-- Pola penyewaan **tidak merata** dan memiliki beberapa puncak.
-- Ada kecenderungan **banyak hari dengan jumlah penyewaan sedang** dibandingkan sangat rendah atau sangat tinggi.
-""")
+    plt.title('Tren Penyewaan Sepeda Tiap Bulan Berdasarkan Cuaca')
+    plt.xlabel('Bulan')
+    plt.ylabel('Jumlah Penyewaan')
 
-# 2️⃣ **Tren Penyewaan Sepeda berdasarkan Bulan**
-st.subheader("📈 Tren Penyewaan Sepeda berdasarkan Bulan")
+    weather_labels = {1: 'Cerah', 2: 'Mendung', 3: 'Hujan'}
+    handles, labels = plt.gca().get_legend_handles_labels()
+    labels = [weather_labels[int(label)] for label in labels]
+    plt.legend(handles, labels, title='Kondisi Cuaca')
 
-plt.figure(figsize=(8, 5))
-sns.lineplot(x="mnth", y="cnt", data=day_df, marker="o", color="green")
-plt.title("Tren Penyewaan Sepeda Bulanan")
-plt.xlabel("Bulan")
-plt.ylabel("Jumlah Penyewaan")
+    st.pyplot(plt)
 
-st.pyplot(plt)
+    st.subheader("📌 Kesimpulan")
+    st.write("""
+    - Penyewaan sepeda meningkat saat cuaca **cerah** dan menurun ketika **hujan**.
+    - Bulan dengan penyewaan tertinggi kemungkinan terjadi di musim liburan atau musim panas.
+    - Kondisi cuaca sangat berpengaruh terhadap jumlah penyewaan.
+    """)
 
-st.subheader("📌 Kesimpulan")
-st.write("""
-- Penyewaan sepeda **meningkat selama pertengahan tahun**.
-- Ada tren menurun pada bulan-bulan tertentu, kemungkinan terkait kondisi cuaca atau musim.
-""")
+elif dataset_choice == "Pola Per Jam (Hari Kerja vs Akhir Pekan)":
+    st.subheader("⏰ Pola Penggunaan Sepeda Per Jam (Hari Kerja vs Akhir Pekan)")
 
-# 3️⃣ **Binning Jumlah Penyewaan**
-st.subheader("📊 Kategorisasi Penyewaan Sepeda (Binning)")
+    plt.figure(figsize=(12, 6))
+    ax = sns.lineplot(x='hr', y='cnt', hue='workingday', data=hour_df, palette={0: 'orange', 1: 'blue'})
 
-# Binning jumlah penyewaan
-bins = [0, 3000, 5000, 7000]
-labels = ['Rendah', 'Sedang', 'Tinggi']
-day_df['Kategori_Penyewaan'] = pd.cut(day_df['cnt'], bins=bins, labels=labels)
+    legend_labels = ['Akhir Pekan', 'Hari Kerja']
+    for t, l in zip(ax.legend_.texts, legend_labels):
+        t.set_text(l)
 
-plt.figure(figsize=(8, 5))
-sns.countplot(x="Kategori_Penyewaan", data=day_df, palette="viridis")
+    plt.title('Pola Penggunaan Sepeda per Jam antara Hari Kerja dan Akhir Pekan')
+    plt.xlabel('Jam')
+    plt.ylabel('Jumlah Penyewaan')
+    st.pyplot(plt)
 
-plt.title("Distribusi Kategori Penyewaan Sepeda")
-plt.xlabel("Kategori Penyewaan")
-plt.ylabel("Jumlah Hari")
+    st.subheader("📌 Kesimpulan")
+    st.write("""
+    - Pada **hari kerja**, ada dua puncak penyewaan: **pagi & sore hari** (kemungkinan besar terkait perjalanan kerja/sekolah).
+    - Pada **akhir pekan**, puncak penyewaan terjadi lebih **siang**, menunjukkan penggunaan lebih banyak untuk rekreasi.
+    """)
 
-st.pyplot(plt)
-
-st.subheader("📌 Kesimpulan")
-st.write("""
-- Mayoritas hari memiliki penyewaan dalam kategori **sedang**.
-- Penyewaan **rendah dan tinggi lebih jarang terjadi** dibandingkan kategori sedang.
-""")
-
-# 4️⃣ **Grouping Musiman**
-st.subheader("🌦️ Pola Penyewaan Berdasarkan Musim (Manual Grouping)")
-
-# Fungsi manual grouping musim
-def season(month):
-    if month in [12, 1, 2]:
-        return 'Hujan'
-    elif month in [3, 4, 5]:
-        return 'Peralihan ke Kemarau'
-    elif month in [6, 7, 8, 9]:
-        return 'Kemarau'
-    else:
-        return 'Peralihan ke Hujan'
-
-day_df['Musim'] = day_df['mnth'].apply(season)
-
-plt.figure(figsize=(8, 5))
-sns.boxplot(x='Musim', y='cnt', data=day_df, palette="coolwarm")
-
-plt.title("Distribusi Penyewaan Sepeda Berdasarkan Musim")
-plt.xlabel("Musim")
-plt.ylabel("Jumlah Penyewaan")
-
-st.pyplot(plt)
-
-st.subheader("📌 Kesimpulan")
-st.write("""
-- Penyewaan **lebih tinggi saat musim kemarau**.
-- Saat musim hujan, jumlah penyewaan **cenderung lebih rendah**.
-- Musim peralihan menunjukkan tren bervariasi.
-""")
+st.sidebar.markdown("💡 **Tip:** Pilih visualisasi di sidebar untuk melihat analisisnya.")
