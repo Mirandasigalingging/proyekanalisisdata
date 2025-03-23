@@ -3,66 +3,68 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-# Set tema seaborn
-sns.set_theme(style="darkgrid")
-
-# Judul Aplikasi
-st.title("📊 Dashboard Analisis Cuaca dan Musim")
-
-# Load dataset langsung dari repository
 @st.cache_data
 def load_data():
-    day = pd.read_csv("day.csv")
-    hour = pd.read_csv("hour.csv")
-    return day, hour
+    day_df = pd.read_csv("day.csv") 
+    hour_df = pd.read_csv("hour.csv")
+    return day_df, hour_df
 
-day, hour = load_data()
+day_df, hour_df = load_data()
 
-# Konversi bulan ke angka
-bulan_mapping = {
-    "Januari": 1, "Februari": 2, "Maret": 3, "April": 4,
-    "Mei": 5, "Juni": 6, "Juli": 7, "Agustus": 8,
-    "September": 9, "Oktober": 10, "November": 11, "Desember": 12
-}
+st.title("🚴 Dashboard Analisis Penyewaan Sepeda")
 
-day["bulan"] = day["mnth"].map(lambda x: list(bulan_mapping.values())[x-1])
+dataset_choice = st.sidebar.radio("Pilih Visualisasi", ["Tren Bulanan (Cuaca)", "Pola Per Jam (Hari Kerja vs Akhir Pekan)"])
 
-def pertanyaan_bisnis():
-    st.subheader("📌 Analisis Pertanyaan Bisnis")
+if dataset_choice == "Tren Bulanan (Cuaca)":
+    st.subheader("📅 Tren Penyewaan Sepeda Bulanan Berdasarkan Cuaca")
     
-    # Pertanyaan 1: Hubungan Cuaca dengan Jumlah Pengguna
-    st.write("### 1. Bagaimana pengaruh cuaca terhadap jumlah pengguna?")
-    fig, ax = plt.subplots(figsize=(8, 5))
-    sns.boxplot(x="weathersit", y="cnt", data=day, ax=ax, palette="coolwarm")
-    ax.set_xlabel("Cuaca")
-    ax.set_ylabel("Jumlah Pengguna")
-    st.pyplot(fig)
+    # Filter berdasarkan bulan
+    month_mapping = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
+    selected_month = st.selectbox("Pilih Bulan", list(month_mapping.values()))
+    selected_month_num = list(month_mapping.keys())[list(month_mapping.values()).index(selected_month)]
     
-    # Pertanyaan 2: Pola Jumlah Pengguna Berdasarkan Musim
-    st.write("### 2. Bagaimana tren jumlah pengguna berdasarkan musim?")
-    fig, ax = plt.subplots(figsize=(8, 5))
-    sns.barplot(x="season", y="cnt", data=day, ax=ax, palette="viridis")
-    ax.set_xlabel("Musim")
-    ax.set_ylabel("Jumlah Pengguna")
-    st.pyplot(fig)
+    filtered_data = day_df[day_df['mnth'] == selected_month_num]
+    
+    # Filter berdasarkan cuaca
+    weather_mapping = {1: "Cerah", 2: "Mendung", 3: "Hujan"}
+    selected_weather = st.selectbox("Pilih Cuaca", list(weather_mapping.values()))
+    selected_weather_num = list(weather_mapping.keys())[list(weather_mapping.values()).index(selected_weather)]
+    
+    filtered_data = filtered_data[filtered_data['weathersit'] == selected_weather_num]
+    
+    plt.figure(figsize=(10, 5))
+    sns.lineplot(x='mnth', y='cnt', hue='weathersit', data=day_df, palette={1: 'blue', 2: 'gray', 3: 'red'})
+    plt.title('Tren Penyewaan Sepeda Tiap Bulan Berdasarkan Cuaca')
+    plt.xlabel('Bulan')
+    plt.ylabel('Jumlah Penyewaan')
+    st.pyplot(plt)
 
-pertanyaan_bisnis()
+    st.subheader("📌 Kesimpulan")
+    st.write("""
+    - Penyewaan sepeda meningkat saat cuaca **cerah** dan menurun ketika **hujan**.
+    - Bulan dengan penyewaan tertinggi kemungkinan terjadi di musim liburan atau musim panas.
+    - Kondisi cuaca sangat berpengaruh terhadap jumlah penyewaan.
+    """)
 
-# Filter visualisasi berdasarkan bulan dan cuaca
-st.subheader("📊 Visualisasi Berdasarkan Bulan dan Cuaca")
-selected_bulan = st.selectbox("Pilih Bulan", list(bulan_mapping.keys()))
-selected_bulan_num = bulan_mapping[selected_bulan]
-filtered_data = day[day["bulan"] == selected_bulan_num]
+elif dataset_choice == "Pola Per Jam (Hari Kerja vs Akhir Pekan)":
+    st.subheader("⏰ Pola Penggunaan Sepeda Per Jam (Hari Kerja vs Akhir Pekan)")
 
-# Pilihan cuaca
-dict_cuaca = {1: "Cerah", 2: "Berawan", 3: "Hujan", 4: "Salju"}
-filtered_data["weathersit"] = filtered_data["weathersit"].map(dict_cuaca)
-selected_cuaca = st.selectbox("Pilih Cuaca", filtered_data["weathersit"].unique())
-filtered_data = filtered_data[filtered_data["weathersit"] == selected_cuaca]
+    plt.figure(figsize=(12, 6))
+    ax = sns.lineplot(x='hr', y='cnt', hue='workingday', data=hour_df, palette={0: 'orange', 1: 'blue'})
+    
+    legend_labels = ['Akhir Pekan', 'Hari Kerja']
+    for t, l in zip(ax.legend_.texts, legend_labels):
+        t.set_text(l)
+    
+    plt.title('Pola Penggunaan Sepeda per Jam antara Hari Kerja dan Akhir Pekan')
+    plt.xlabel('Jam')
+    plt.ylabel('Jumlah Penyewaan')
+    st.pyplot(plt)
 
-# Visualisasi
-fig, ax = plt.subplots(figsize=(8, 5))
-sns.barplot(x="season", y="cnt", data=filtered_data, ax=ax, palette="magma")
-ax.set_ylabel("Jumlah Pengguna")
-ax.set_xlabel("Musim")
-st.pyplot(fig)
+    st.subheader("📌 Kesimpulan")
+    st.write("""
+    - Pada **hari kerja**, ada dua puncak penyewaan: **pagi & sore hari** (kemungkinan besar terkait perjalanan kerja/sekolah).
+    - Pada **akhir pekan**, puncak penyewaan terjadi lebih **siang**, menunjukkan penggunaan lebih banyak untuk rekreasi.
+    """)
+
+st.sidebar.markdown("💡 **Tip:** Pilih visualisasi di sidebar untuk melihat analisisnya.")
