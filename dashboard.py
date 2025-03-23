@@ -4,7 +4,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 # Load data (gantilah dengan path dataset yang sesuai)
-data = pd.read_csv('data.csv')
+data = pd.read_csv('C:\Users\mirandabintangms_\Downloads\KULIAH\SEM 5\MBKM\submission\dashboard\day.csv')
 
 # Pastikan kolom yang relevan ada
 data['month'] = pd.to_datetime(data['date']).dt.strftime('%B')  # Ubah angka bulan ke nama
