@@ -3,61 +3,44 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-# Fungsi untuk load data dengan cache
-@st.cache_data
-def load_data():
-    day_df = pd.read_csv("day.csv") 
-    hour_df = pd.read_csv("hour.csv")
-    return day_df, hour_df
+# Load data (gantilah dengan path dataset yang sesuai)
+data = pd.read_csv('data.csv')
 
-day_df, hour_df = load_data()
+# Pastikan kolom yang relevan ada
+data['month'] = pd.to_datetime(data['date']).dt.strftime('%B')  # Ubah angka bulan ke nama
 
-# Mapping angka ke nama bulan
-month_mapping = {
-    1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
-    7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
-}
-day_df["bulan"] = day_df["mnth"].map(month_mapping)
-
-# Mapping angka ke kondisi cuaca
+# Mapping cuaca dari angka ke kategori
 weather_mapping = {
-    1: "Cerah", 2: "Mendung", 3: "Hujan"
+    1: 'Cerah',
+    2: 'Mendung',
+    3: 'Hujan'
 }
-day_df["cuaca"] = day_df["weathersit"].map(weather_mapping)
+data['weather'] = data['weather'].map(weather_mapping)
 
-st.title("🚴 Dashboard Analisis Penyewaan Sepeda")
+# Sidebar untuk memilih bulan dan cuaca
+st.sidebar.header("Filter Data")
+selected_month = st.sidebar.selectbox("Pilih Bulan", sorted(data['month'].unique()))
+selected_weather = st.sidebar.selectbox("Pilih Cuaca", sorted(data['weather'].dropna().unique()))
 
-# Sidebar untuk memilih visualisasi
-dataset_choice = st.sidebar.radio("Pilih Visualisasi", ["Tren Bulanan (Cuaca)", "Pola Per Jam (Hari Kerja vs Akhir Pekan)"])
+# Filter data berdasarkan pilihan pengguna
+filtered_data = data[(data['month'] == selected_month) & (data['weather'] == selected_weather)]
 
-if dataset_choice == "Tren Bulanan (Cuaca)":
-    st.subheader("📅 Tren Penyewaan Sepeda Bulanan Berdasarkan Cuaca")
-    
-    selected_month = st.selectbox("Pilih Bulan", day_df["bulan"].unique())
-    selected_weather = st.selectbox("Pilih Cuaca", day_df["cuaca"].unique())
-    
-    filtered_data = day_df[(day_df["bulan"] == selected_month) & (day_df["cuaca"] == selected_weather)]
-    
-    plt.figure(figsize=(10, 5))
-    sns.lineplot(x='dteday', y='cnt', data=filtered_data, marker="o", color="blue")
-    plt.xlabel("Tanggal")
-    plt.ylabel("Jumlah Penyewaan")
-    plt.xticks(rotation=45)
-    plt.title(f'Tren Penyewaan Sepeda pada {selected_month} saat {selected_weather}')
-    st.pyplot(plt)
+st.title(f"Visualisasi Data untuk {selected_month} - {selected_weather}")
 
-elif dataset_choice == "Pola Per Jam (Hari Kerja vs Akhir Pekan)":
-    st.subheader("⏰ Pola Penggunaan Sepeda Per Jam (Hari Kerja vs Akhir Pekan)")
-    
-    selected_hour = st.slider("Pilih Jam", min_value=0, max_value=23, value=12)
-    filtered_hour_data = hour_df[hour_df["hr"] == selected_hour]
-    
-    plt.figure(figsize=(10, 5))
-    sns.barplot(x='workingday', y='cnt', data=filtered_hour_data, palette={0: 'orange', 1: 'blue'})
-    plt.xticks(ticks=[0, 1], labels=["Akhir Pekan", "Hari Kerja"])
-    plt.xlabel("Kategori Hari")
-    plt.ylabel("Jumlah Penyewaan")
-    plt.title(f'Jumlah Penyewaan Sepeda pada Jam {selected_hour}')
-    st.pyplot(plt)
+# Visualisasi jumlah pengguna sepeda per jam
+st.subheader("Penggunaan Sepeda Per Jam")
+fig, ax = plt.subplots(figsize=(10, 5))
+sns.barplot(x='hour', y='count', data=filtered_data, ax=ax, palette='coolwarm')
+ax.set_xlabel("Jam")
+ax.set_ylabel("Jumlah Pengguna")
+st.pyplot(fig)
 
-st.sidebar.markdown("💡 **Tip:** Pilih visualisasi dan filter untuk eksplorasi data lebih lanjut.")
+# Visualisasi pola penggunaan sepeda per musim
+st.subheader("Pola Penggunaan Sepeda per Musim")
+fig, ax = plt.subplots(figsize=(10, 5))
+sns.boxplot(x='season', y='count', data=data, palette='pastel')
+ax.set_xlabel("Musim")
+ax.set_ylabel("Jumlah Pengguna")
+st.pyplot(fig)
+
+st.write("Sumber data: Dataset penggunaan sepeda")
