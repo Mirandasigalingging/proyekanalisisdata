@@ -18,35 +18,36 @@ dataset_choice = st.sidebar.radio("Pilih Visualisasi", ["Tren Bulanan (Cuaca)", 
 if dataset_choice == "Tren Bulanan (Cuaca)":
     st.subheader("📅 Tren Penyewaan Sepeda Bulanan Berdasarkan Cuaca")
     
-    # Pilihan bulan dengan opsi "1 TAHUN"
-    bulan_options = ["1 TAHUN"] + list(range(1, 13))
+    bulan_mapping = {
+        1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
+        7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
+    }
+    bulan_options = ["1 TAHUN"] + list(bulan_mapping.values())
     selected_bulan = st.sidebar.selectbox("Pilih Bulan", bulan_options)
     
-    # Pilihan cuaca
-    cuaca_options = day_df["weathersit"].unique()
+    cuaca_mapping = {1: "Cerah", 2: "Mendung", 3: "Hujan"}
+    cuaca_options = [cuaca_mapping[key] for key in day_df["weathersit"].unique()]
     selected_cuaca = st.sidebar.selectbox("Pilih Cuaca", cuaca_options)
     
-    # Filter data
+    cuaca_reverse_mapping = {v: k for k, v in cuaca_mapping.items()}
+    selected_cuaca_value = cuaca_reverse_mapping[selected_cuaca]
+    
     if selected_bulan == "1 TAHUN":
-        filtered_data = day_df[day_df["weathersit"] == selected_cuaca]
+        filtered_data = day_df[day_df["weathersit"] == selected_cuaca_value]
     else:
-        filtered_data = day_df[(day_df["mnth"] == selected_bulan) & (day_df["weathersit"] == selected_cuaca)]
+        selected_bulan_value = [k for k, v in bulan_mapping.items() if v == selected_bulan][0]
+        filtered_data = day_df[(day_df["mnth"] == selected_bulan_value) & (day_df["weathersit"] == selected_cuaca_value)]
     
     plt.figure(figsize=(10, 5))
-    palette = {1: 'blue', 2: 'gray', 3: 'red'}
-    sns.lineplot(x='mnth', y='cnt', hue='weathersit', data=filtered_data, palette=palette)
-
+    sns.lineplot(x='mnth', y='cnt', data=filtered_data, color='blue', marker='o')
+    
     plt.title('Tren Penyewaan Sepeda Tiap Bulan Berdasarkan Cuaca')
     plt.xlabel('Bulan')
     plt.ylabel('Jumlah Penyewaan')
-
-    weather_labels = {1: 'Cerah', 2: 'Mendung', 3: 'Hujan'}
-    handles, labels = plt.gca().get_legend_handles_labels()
-    labels = [weather_labels[int(label)] for label in labels]
-    plt.legend(handles, labels, title='Kondisi Cuaca')
-
+    plt.xticks(ticks=list(bulan_mapping.keys()), labels=list(bulan_mapping.values()))
+    
     st.pyplot(plt)
-
+    
     st.subheader("📌 Kesimpulan")
     st.write("""
     - Penyewaan sepeda meningkat saat cuaca **cerah** dan menurun ketika **hujan**.
