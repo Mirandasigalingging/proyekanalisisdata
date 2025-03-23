@@ -8,6 +8,18 @@ import matplotlib.pyplot as plt
 def load_data():
     day_df = pd.read_csv("day.csv") 
     hour_df = pd.read_csv("hour.csv")
+    
+    # Konversi angka bulan menjadi nama bulan
+    month_mapping = {
+        1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
+        7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
+    }
+    day_df["bulan"] = day_df["mnth"].map(month_mapping)
+
+    # Konversi angka cuaca menjadi deskripsi
+    weather_mapping = {1: "Cerah", 2: "Mendung", 3: "Hujan"}
+    day_df["cuaca"] = day_df["weathersit"].map(weather_mapping)
+    
     return day_df, hour_df
 
 # Load dataset
@@ -23,33 +35,28 @@ dataset_choice = st.sidebar.radio("Pilih Visualisasi", ["Tren Bulanan (Cuaca)", 
 if dataset_choice == "Tren Bulanan (Cuaca)":
     st.subheader("📅 Tren Penyewaan Sepeda Bulanan Berdasarkan Cuaca")
 
-    # Menambahkan filter interaktif
-    selected_month = st.selectbox("Pilih Bulan", sorted(day_df["mnth"].unique()))
-    selected_weather = st.selectbox("Pilih Kondisi Cuaca", sorted(day_df["weathersit"].unique()))
+    # Menampilkan nama bulan dan cuaca langsung
+    selected_month = st.selectbox("Pilih Bulan", sorted(day_df["bulan"].unique(), key=lambda x: list(month_mapping.values()).index(x)))
+    selected_weather = st.selectbox("Pilih Kondisi Cuaca", sorted(day_df["cuaca"].unique()))
 
     # Filter dataset berdasarkan pilihan pengguna
-    filtered_day_df = day_df[(day_df["mnth"] == selected_month) & (day_df["weathersit"] == selected_weather)]
+    filtered_day_df = day_df[(day_df["bulan"] == selected_month) & (day_df["cuaca"] == selected_weather)]
 
     # Visualisasi
     plt.figure(figsize=(10, 5))
-    sns.lineplot(x='mnth', y='cnt', hue='weathersit', data=filtered_day_df, palette={1: 'blue', 2: 'gray', 3: 'red'})
+    sns.lineplot(x='bulan', y='cnt', hue='cuaca', data=filtered_day_df, palette={"Cerah": 'blue', "Mendung": 'gray', "Hujan": 'red'})
 
     plt.title('Tren Penyewaan Sepeda Tiap Bulan Berdasarkan Cuaca')
     plt.xlabel('Bulan')
     plt.ylabel('Jumlah Penyewaan')
 
-    # Mengubah legenda ke bahasa yang lebih mudah dipahami
-    weather_labels = {1: 'Cerah', 2: 'Mendung', 3: 'Hujan'}
-    handles, labels = plt.gca().get_legend_handles_labels()
-    labels = [weather_labels[int(label)] for label in labels]
-    plt.legend(handles, labels, title='Kondisi Cuaca')
-
+    plt.legend(title="Kondisi Cuaca")
     st.pyplot(plt)
 
     st.subheader("📌 Kesimpulan")
     st.write(f"""
-    - Penyewaan sepeda meningkat saat cuaca **{weather_labels[selected_weather]}**.
-    - Pada bulan {selected_month}, terdapat tren penyewaan tertentu berdasarkan kondisi cuaca.
+    - Penyewaan sepeda meningkat saat cuaca **{selected_weather}**.
+    - Pada bulan **{selected_month}**, terdapat tren penyewaan tertentu berdasarkan kondisi cuaca.
     - Cuaca memainkan peran besar dalam jumlah penyewaan sepeda.
     """)
 
