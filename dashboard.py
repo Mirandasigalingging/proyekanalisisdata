@@ -27,10 +27,10 @@ if dataset_choice == "Tren Bulanan (Cuaca)":
     selected_cuaca = st.sidebar.selectbox("Pilih Cuaca", cuaca_options)
     
     # Filter data
-    filtered_data = day_df.copy()
-    if selected_bulan != "1 TAHUN":
-        filtered_data = filtered_data[filtered_data["mnth"] == selected_bulan]
-    filtered_data = filtered_data[filtered_data["weathersit"] == selected_cuaca]
+    if selected_bulan == "1 TAHUN":
+        filtered_data = day_df[day_df["weathersit"] == selected_cuaca]
+    else:
+        filtered_data = day_df[(day_df["mnth"] == selected_bulan) & (day_df["weathersit"] == selected_cuaca)]
     
     plt.figure(figsize=(10, 5))
     palette = {1: 'blue', 2: 'gray', 3: 'red'}
