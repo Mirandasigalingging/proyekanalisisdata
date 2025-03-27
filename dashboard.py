@@ -3,7 +3,6 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-# Load dataset
 @st.cache_data
 def load_data():
     day_df = pd.read_csv("day.csv") 
@@ -13,24 +12,44 @@ day_df = load_data()
 
 st.title("🚴 Dashboard Analisis Penyewaan Sepeda")
 
-# Sidebar untuk interaksi pengguna
-st.sidebar.header("📊 Pengaturan Visualisasi")
-selected_view = st.sidebar.radio("Pilih Visualisasi:", 
-                                 ["Tren Penyewaan Bulanan", "Faktor yang Mempengaruhi Penyewaan"])
+dataset_choice = st.sidebar.radio("Pilih Visualisasi", ["Tren Bulanan (Cuaca)", "Pola Per Jam (Hari Kerja vs Akhir Pekan)"])
 
-### 📌 VISUALISASI 1: Tren Penyewaan Sepeda Bulanan Berdasarkan Cuaca ###
-if selected_view == "Tren Penyewaan Bulanan":
+if dataset_choice == "Tren Bulanan (Cuaca)":
     st.subheader("📅 Tren Penyewaan Sepeda Bulanan Berdasarkan Cuaca")
-    
-    plt.figure(figsize=(10, 5))
-    palette = {1: 'blue', 2: 'gray', 3: 'red'}
 
+    # Mapping bulan dan cuaca
+    month_map = {
+        1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
+        7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
+    }
+    weather_map = {1: "Cerah", 2: "Mendung", 3: "Hujan"}
+    palette = {1: 'blue', 2: 'gray', 3: 'red'}  # Warna untuk cuaca
+
+    day_df["mnth_name"] = day_df["mnth"].map(month_map)
+    day_df["cuaca"] = day_df["weathersit"].map(weather_map)
+
+    # Pilihan filter
+    bulan_options = ["Semua Bulan"] + list(month_map.values())
+    selected_bulan = st.sidebar.selectbox("Pilih Bulan", bulan_options)
+
+    cuaca_options = ["Semua Cuaca"] + list(weather_map.values())
+    selected_cuaca = st.sidebar.selectbox("Pilih Cuaca", cuaca_options)
+
+    # Filter data
+    filtered_data = day_df.copy()
+    if selected_bulan != "Semua Bulan":
+        filtered_data = filtered_data[filtered_data["mnth_name"] == selected_bulan]
+    if selected_cuaca != "Semua Cuaca":
+        filtered_data = filtered_data[filtered_data["cuaca"] == selected_cuaca]
+
+    # Plot
+    plt.figure(figsize=(10, 5))
     sns.lineplot(
         x='mnth', y='cnt', hue='weathersit', 
-        data=day_df, palette=palette, linewidth=2, ci=80
+        data=filtered_data, palette=palette, linewidth=2, ci=80
     )
 
-    # Garis vertikal untuk puncak penyewaan
+    # Menambahkan garis vertikal pada puncak penyewaan (misalnya bulan 9)
     plt.axvline(x=9, color='black', linestyle="dashed", alpha=0.7)
     plt.text(9, day_df["cnt"].max(), "Puncak Penyewaan\nBulan 9", ha='center', fontsize=10)
 
@@ -39,34 +58,5 @@ if selected_view == "Tren Penyewaan Bulanan":
     plt.xlabel('Bulan')
     plt.ylabel('Jumlah Penyewaan')
 
-    # Legenda sesuai label
-    weather_labels = {1: 'Cerah', 2: 'Mendung', 3: 'Hujan'}
-    handles, labels = plt.gca().get_legend_handles_labels()
-    labels = [weather_labels[int(label)] for label in labels]
-    plt.legend(handles, labels, title='Kondisi Cuaca')
-
-    st.pyplot(plt)
-
-### 📌 VISUALISASI 2: Faktor yang Mempengaruhi Penyewaan Sepeda ###
-elif selected_view == "Faktor yang Mempengaruhi Penyewaan":
-    st.subheader("🔍 Faktor yang Mempengaruhi Penyewaan Sepeda")
-    
-    # Opsi pemilihan faktor
-    faktor = st.selectbox("Pilih Faktor:", ["temp", "hum", "windspeed"])
-
-    # Visualisasi hubungan faktor terhadap jumlah penyewaan
-    plt.figure(figsize=(8, 5))
-    sns.scatterplot(x=day_df[faktor], y=day_df['cnt'], alpha=0.5)
-    plt.xlabel(faktor.capitalize())
-    plt.ylabel("Jumlah Penyewaan")
-    plt.title(f"Hubungan antara {faktor.capitalize()} dan Penyewaan Sepeda")
-    
-    st.pyplot(plt)
-
-# Kesimpulan Umum
-st.subheader("📌 Kesimpulan")
-st.write("""
-- Penyewaan sepeda meningkat saat cuaca **cerah** dan menurun ketika **hujan**.
-- Puncak penyewaan terjadi pada **bulan 9**.
-- Faktor **temperatur** dan **kelembaban** berpengaruh terhadap jumlah penyewaan.
-""")
+    # Legenda sesuai label cuaca
+    handles, labels = plt
