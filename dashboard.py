@@ -95,4 +95,8 @@ elif dataset_choice == "Pola Per Jam (Hari Kerja vs Akhir Pekan)":
     # Tampilkan plot di Streamlit
     st.pyplot(plt)
 
-    st.subheader("
+    st.subheader("📌 Kesimpulan")
+st.write("""
+- Penyewaan sepeda meningkat saat cuaca **cerah** dan menurun ketika **hujan**.
+- Kamu bisa **memilih bulan & kondisi cuaca** untuk melihat pola lebih spesifik.
+""")
