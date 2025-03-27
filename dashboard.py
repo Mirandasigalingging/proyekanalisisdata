@@ -18,38 +18,38 @@ dataset_choice = st.sidebar.radio("Pilih Visualisasi", ["Tren Bulanan (Cuaca)", 
 if dataset_choice == "Tren Bulanan (Cuaca)":
     st.subheader("📅 Tren Penyewaan Sepeda Bulanan Berdasarkan Cuaca")
     
-    # Pilihan tahun dan bulan
-    tahun_options = ["Semua Tahun"] + sorted(day_df["yr"].unique().tolist())
-    selected_tahun = st.sidebar.selectbox("Pilih Tahun", tahun_options)
+    # Konversi bulan dan cuaca ke bentuk deskriptif
+    month_map = {
+        1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
+        7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
+    }
+    weather_map = {1: "Cerah", 2: "Mendung", 3: "Hujan"}
     
-    bulan_options = ["Semua Bulan"] + list(range(1, 13))
+    day_df["mnth_name"] = day_df["mnth"].map(month_map)
+    day_df["cuaca"] = day_df["weathersit"].map(weather_map)
+    
+    # Pilihan filter
+    bulan_options = ["Semua Bulan"] + list(month_map.values())
     selected_bulan = st.sidebar.selectbox("Pilih Bulan", bulan_options)
     
-    # Pilihan cuaca
-    cuaca_options = ["Semua Cuaca"] + sorted(day_df["weathersit"].unique().tolist())
+    cuaca_options = ["Semua Cuaca"] + list(weather_map.values())
     selected_cuaca = st.sidebar.selectbox("Pilih Cuaca", cuaca_options)
     
     # Filter data
     filtered_data = day_df.copy()
-    if selected_tahun != "Semua Tahun":
-        filtered_data = filtered_data[filtered_data["yr"] == selected_tahun]
     if selected_bulan != "Semua Bulan":
-        filtered_data = filtered_data[filtered_data["mnth"] == selected_bulan]
+        filtered_data = filtered_data[filtered_data["mnth_name"] == selected_bulan]
     if selected_cuaca != "Semua Cuaca":
-        filtered_data = filtered_data[filtered_data["weathersit"] == selected_cuaca]
+        filtered_data = filtered_data[filtered_data["cuaca"] == selected_cuaca]
     
+    # Plot
     plt.figure(figsize=(10, 5))
-    palette = {1: 'blue', 2: 'gray', 3: 'red'}
-    sns.lineplot(x='mnth', y='cnt', hue='weathersit', data=filtered_data, palette=palette)
-    
+    sns.lineplot(x='mnth_name', y='cnt', hue='cuaca', data=filtered_data)
+    plt.xticks(rotation=45)
     plt.title('Tren Penyewaan Sepeda Tiap Bulan Berdasarkan Cuaca')
     plt.xlabel('Bulan')
     plt.ylabel('Jumlah Penyewaan')
-    
-    weather_labels = {1: 'Cerah', 2: 'Mendung', 3: 'Hujan'}
-    handles, labels = plt.gca().get_legend_handles_labels()
-    labels = [weather_labels[int(label)] for label in labels]
-    plt.legend(handles, labels, title='Kondisi Cuaca')
+    plt.legend(title='Kondisi Cuaca')
     
     st.pyplot(plt)
     
@@ -81,4 +81,4 @@ elif dataset_choice == "Pola Per Jam (Hari Kerja vs Akhir Pekan)":
     - Pada **akhir pekan**, puncak penyewaan terjadi lebih **siang**, menunjukkan penggunaan lebih banyak untuk rekreasi.
     """)
 
-st.sidebar.markdown("💡 **Tip:** Pilih visualisasi di sidebar untuk melihat analisisnya.")
+st.sidebar.markdown("💡 **Tip:** Pilih visualisasi di sidebar untuk melihat analisisnya."
