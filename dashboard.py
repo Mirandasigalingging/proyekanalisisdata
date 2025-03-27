@@ -1,53 +1,84 @@
-# Import library yang dibutuhkan
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
+import matplotlib.pyplot as plt
 
-# Load dataset
-df = pd.read_csv('your_dataset.csv')  # Sesuaikan dengan nama dataset
+@st.cache_data
+def load_data():
+    day_df = pd.read_csv("day.csv") 
+    hour_df = pd.read_csv("hour.csv")
+    return day_df, hour_df
 
-# Sidebar Filters
-st.sidebar.header('Filter Data')
-tahun_options = ['Semua'] + sorted(df['year'].unique().tolist())
-cuaca_options = ['Semua'] + sorted(df['weathersit'].unique().tolist())
+day_df, hour_df = load_data()
 
-selected_tahun = st.sidebar.selectbox("Pilih Tahun", tahun_options)
-selected_cuaca = st.sidebar.selectbox("Pilih Cuaca", cuaca_options)
+st.title("🚴 Dashboard Analisis Penyewaan Sepeda")
 
-# Filter Data
-filtered_df = df.copy()
-if selected_tahun != "Semua":
-    filtered_df = filtered_df[filtered_df['year'] == selected_tahun]
-if selected_cuaca != "Semua":
-    filtered_df = filtered_df[filtered_df['weathersit'] == selected_cuaca]
+dataset_choice = st.sidebar.radio("Pilih Visualisasi", ["Tren Bulanan (Cuaca)", "Pola Per Jam (Hari Kerja vs Akhir Pekan)"])
 
-# Judul Dashboard
-st.title("Analisis Data Penyewaan Sepeda")
-st.write("Dashboard ini menyajikan hasil analisis data berdasarkan faktor cuaca dan tahun.")
+if dataset_choice == "Tren Bulanan (Cuaca)":
+    st.subheader("📅 Tren Penyewaan Sepeda Bulanan Berdasarkan Cuaca")
+    
+    # Pilihan tahun dan bulan
+    tahun_options = ["Semua Tahun"] + sorted(day_df["yr"].unique().tolist())
+    selected_tahun = st.sidebar.selectbox("Pilih Tahun", tahun_options)
+    
+    bulan_options = ["Semua Bulan"] + list(range(1, 13))
+    selected_bulan = st.sidebar.selectbox("Pilih Bulan", bulan_options)
+    
+    # Pilihan cuaca
+    cuaca_options = ["Semua Cuaca"] + sorted(day_df["weathersit"].unique().tolist())
+    selected_cuaca = st.sidebar.selectbox("Pilih Cuaca", cuaca_options)
+    
+    # Filter data
+    filtered_data = day_df.copy()
+    if selected_tahun != "Semua Tahun":
+        filtered_data = filtered_data[filtered_data["yr"] == selected_tahun]
+    if selected_bulan != "Semua Bulan":
+        filtered_data = filtered_data[filtered_data["mnth"] == selected_bulan]
+    if selected_cuaca != "Semua Cuaca":
+        filtered_data = filtered_data[filtered_data["weathersit"] == selected_cuaca]
+    
+    plt.figure(figsize=(10, 5))
+    palette = {1: 'blue', 2: 'gray', 3: 'red'}
+    sns.lineplot(x='mnth', y='cnt', hue='weathersit', data=filtered_data, palette=palette)
+    
+    plt.title('Tren Penyewaan Sepeda Tiap Bulan Berdasarkan Cuaca')
+    plt.xlabel('Bulan')
+    plt.ylabel('Jumlah Penyewaan')
+    
+    weather_labels = {1: 'Cerah', 2: 'Mendung', 3: 'Hujan'}
+    handles, labels = plt.gca().get_legend_handles_labels()
+    labels = [weather_labels[int(label)] for label in labels]
+    plt.legend(handles, labels, title='Kondisi Cuaca')
+    
+    st.pyplot(plt)
+    
+    st.subheader("📌 Kesimpulan")
+    st.write("""
+    - Penyewaan sepeda meningkat saat cuaca **cerah** dan menurun ketika **hujan**.
+    - Bulan dengan penyewaan tertinggi kemungkinan terjadi di musim liburan atau musim panas.
+    - Kondisi cuaca sangat berpengaruh terhadap jumlah penyewaan.
+    """)
 
-# Visualisasi 1: Jumlah Penyewaan Sepeda per Bulan
-st.subheader("Jumlah Penyewaan Sepeda per Bulan")
-plt.figure(figsize=(10, 5))
-sns.barplot(x='month', y='cnt', data=filtered_df, ci=None, palette='Blues')
-plt.xlabel("Bulan")
-plt.ylabel("Jumlah Penyewaan")
-st.pyplot(plt)
+elif dataset_choice == "Pola Per Jam (Hari Kerja vs Akhir Pekan)":
+    st.subheader("⏰ Pola Penggunaan Sepeda Per Jam (Hari Kerja vs Akhir Pekan)")
+    
+    plt.figure(figsize=(12, 6))
+    ax = sns.lineplot(x='hr', y='cnt', hue='workingday', data=hour_df, palette={0: 'orange', 1: 'blue'})
+    
+    legend_labels = ['Akhir Pekan', 'Hari Kerja']
+    for t, l in zip(ax.legend_.texts, legend_labels):
+        t.set_text(l)
+    
+    plt.title('Pola Penggunaan Sepeda per Jam antara Hari Kerja dan Akhir Pekan')
+    plt.xlabel('Jam')
+    plt.ylabel('Jumlah Penyewaan')
+    st.pyplot(plt)
+    
+    st.subheader("📌 Kesimpulan")
+    st.write("""
+    - Pada **hari kerja**, ada dua puncak penyewaan: **pagi & sore hari** (kemungkinan besar terkait perjalanan kerja/sekolah).
+    - Pada **akhir pekan**, puncak penyewaan terjadi lebih **siang**, menunjukkan penggunaan lebih banyak untuk rekreasi.
+    """)
 
-# Visualisasi 2: Pengaruh Cuaca terhadap Penyewaan
-st.subheader("Pengaruh Cuaca terhadap Penyewaan Sepeda")
-plt.figure(figsize=(8, 5))
-sns.boxplot(x='weathersit', y='cnt', data=filtered_df, palette='Set2')
-plt.xlabel("Cuaca")
-plt.ylabel("Jumlah Penyewaan")
-st.pyplot(plt)
-
-# Visualisasi 3: Tren Penyewaan Sepeda per Tahun
-st.subheader("Tren Penyewaan Sepeda per Tahun")
-plt.figure(figsize=(10, 5))
-sns.lineplot(x='year', y='cnt', data=filtered_df, marker='o', color='red')
-plt.xlabel("Tahun")
-plt.ylabel("Jumlah Penyewaan")
-st.pyplot(plt)
-
-st.write("**Catatan:** Data di atas dapat difilter berdasarkan tahun dan cuaca menggunakan panel di sebelah kiri.")
+st.sidebar.markdown("💡 **Tip:** Pilih visualisasi di sidebar untuk melihat analisisnya.")
