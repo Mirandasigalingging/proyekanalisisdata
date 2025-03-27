@@ -26,6 +26,22 @@ dataset_choice = st.sidebar.radio(
 if dataset_choice == "Tren Bulanan (Cuaca)":
     st.subheader("📅 Tren Penyewaan Sepeda Bulanan Berdasarkan Cuaca")
 
+    # **🔹 PILIHAN INTERAKTIF**
+    bulan_list = {1: "Januari", 2: "Februari", 3: "Maret", 4: "April",
+                  5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus",
+                  9: "September", 10: "Oktober", 11: "November", 12: "Desember"}
+
+    cuaca_list = {1: "Cerah", 2: "Mendung", 3: "Hujan"}
+
+    # Pilihan bulan (bisa pilih lebih dari satu)
+    selected_months = st.multiselect("Pilih Bulan:", options=list(bulan_list.keys()), format_func=lambda x: bulan_list[x], default=list(bulan_list.keys()))
+
+    # Pilihan cuaca (bisa pilih lebih dari satu)
+    selected_weather = st.multiselect("Pilih Kondisi Cuaca:", options=list(cuaca_list.keys()), format_func=lambda x: cuaca_list[x], default=list(cuaca_list.keys()))
+
+    # Filter data berdasarkan pilihan
+    filtered_df = day_df[(day_df['mnth'].isin(selected_months)) & (day_df['weathersit'].isin(selected_weather))]
+
     # Warna untuk cuaca
     palette = {1: 'blue', 2: 'gray', 3: 'red'}
 
@@ -33,12 +49,8 @@ if dataset_choice == "Tren Bulanan (Cuaca)":
     plt.figure(figsize=(10, 5))
     sns.lineplot(
         x='mnth', y='cnt', hue='weathersit',
-        data=day_df, palette=palette, linewidth=2, ci=80
+        data=filtered_df, palette=palette, linewidth=2, ci=80
     )
-
-    # Menambahkan garis vertikal pada puncak penyewaan (misalnya bulan 9)
-    plt.axvline(x=9, color='black', linestyle="dashed", alpha=0.7)
-    plt.text(9, day_df["cnt"].max(), "Puncak Penyewaan\nBulan 9", ha='center', fontsize=10)
 
     # Label dan judul
     plt.title('Tren Penggunaan Sepeda Tiap Bulan Berdasarkan Kondisi Cuaca')
@@ -57,8 +69,7 @@ if dataset_choice == "Tren Bulanan (Cuaca)":
     st.subheader("📌 Kesimpulan")
     st.write("""
     - Penyewaan sepeda meningkat saat cuaca **cerah** dan menurun ketika **hujan**.
-    - Puncak penyewaan terjadi pada **bulan 9**.
-    - Tren penyewaan lebih tinggi selama musim hangat dan berkurang pada musim hujan.
+    - Kamu bisa **memilih bulan & kondisi cuaca** untuk melihat pola lebih spesifik.
     """)
 
 # **VISUALISASI 2: Pola Per Jam Hari Kerja vs Akhir Pekan**
@@ -84,8 +95,4 @@ elif dataset_choice == "Pola Per Jam (Hari Kerja vs Akhir Pekan)":
     # Tampilkan plot di Streamlit
     st.pyplot(plt)
 
-    st.subheader("📌 Kesimpulan")
-    st.write("""
-    - Pada **hari kerja**, ada dua puncak penyewaan: **pagi & sore hari** (kemungkinan besar terkait perjalanan kerja/sekolah).
-    - Pada **akhir pekan**, puncak penyewaan terjadi lebih **siang**, menunjukkan penggunaan lebih banyak untuk rekreasi.
-    """)
+    st.subheader("
