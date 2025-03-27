@@ -1,32 +1,24 @@
-import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Fungsi untuk load dataset
-@st.cache_data
-def load_data():
-    df_hour = pd.read_csv("hour.csv")  
-    df_day = pd.read_csv("day.csv")  
+# Load dataset
+df_hour = pd.read_csv("hour.csv")
+df_day = pd.read_csv("day.csv")
 
-    # Konversi ke datetime
-    df_hour['dteday'] = pd.to_datetime(df_hour['dteday'])
-    df_day['dteday'] = pd.to_datetime(df_day['dteday'])
+# Konversi ke datetime
+df_hour['dteday'] = pd.to_datetime(df_hour['dteday'])
+df_day['dteday'] = pd.to_datetime(df_day['dteday'])
 
-    # Tambahkan kolom bulan & kondisi cuaca
-    df_hour['month'] = df_hour['dteday'].dt.month
-    df_day['month'] = df_day['dteday'].dt.month
+# Tambahkan kolom bulan & cuaca
+df_hour['month'] = df_hour['dteday'].dt.month
+df_day['month'] = df_day['dteday'].dt.month
 
-    df_hour['weather'] = df_hour['weathersit'].map({1: "Cerah", 2: "Mendung", 3: "Hujan"})
-    df_day['weather'] = df_day['weathersit'].map({1: "Cerah", 2: "Mendung", 3: "Hujan"})
+df_hour['weather'] = df_hour['weathersit'].map({1: "Cerah", 2: "Mendung", 3: "Hujan"})
+df_day['weather'] = df_day['weathersit'].map({1: "Cerah", 2: "Mendung", 3: "Hujan"})
 
-    # Gabungkan kedua dataset (berdasarkan tanggal)
-    df_merged = pd.merge(df_hour, df_day, on="dteday", suffixes=("_hour", "_day"))
-    
-    return df_merged
-
-# Load data
-data = load_data()
+# Gabungkan dataset berdasarkan tanggal
+df_merged = pd.merge(df_hour, df_day, on="dteday", suffixes=("_hour", "_day"))
 
 # Mapping nama bulan
 bulan_mapping = {
@@ -35,39 +27,41 @@ bulan_mapping = {
     9: "September", 10: "Oktober", 11: "November", 12: "Desember"
 }
 
-# Sidebar filter
-st.sidebar.header("Filter Data")
-bulan_selected = st.sidebar.selectbox("Pilih Bulan:", ["Semua Bulan"] + list(bulan_mapping.values()))
-cuaca_selected = st.sidebar.selectbox("Pilih Kondisi Cuaca:", ["Semua Cuaca", "Cerah", "Mendung", "Hujan"])
+# Pilihan dropdown manual
+print("Pilihan Bulan:")
+print("0: Semua Bulan")
+for k, v in bulan_mapping.items():
+    print(f"{k}: {v}")
 
-# Filter data berdasarkan pilihan
-if bulan_selected != "Semua Bulan":
-    bulan_num = [k for k, v in bulan_mapping.items() if v == bulan_selected][0]
-    data = data[data["month_hour"] == bulan_num]
+bulan_selected = int(input("Masukkan angka bulan yang dipilih: "))
+cuaca_selected = input("Masukkan kondisi cuaca (Cerah/Mendung/Hujan/Semua Cuaca): ")
 
-if cuaca_selected != "Semua Cuaca":
-    data = data[data["weather_hour"] == cuaca_selected]
+# Filter data
+if bulan_selected != 0:
+    df_merged = df_merged[df_merged["month_hour"] == bulan_selected]
+
+if cuaca_selected.lower() != "semua cuaca":
+    df_merged = df_merged[df_merged["weather_hour"].str.lower() == cuaca_selected.lower()]
 
 # Tampilkan Data
-st.write("## Data yang Ditampilkan")
-st.dataframe(data)
+print("\nData yang Ditampilkan:")
+print(df_merged.head())
 
 # Visualisasi Tren Jumlah Penyewa
-st.write("## Tren Penyewaan Sepeda")
-fig, ax = plt.subplots(figsize=(10, 5))
-sns.lineplot(x="dteday", y="cnt_hour", data=data, ax=ax)
-ax.set_title("Tren Penyewaan Sepeda")
-ax.set_xlabel("Tanggal")
-ax.set_ylabel("Jumlah Penyewa")
-st.pyplot(fig)
+plt.figure(figsize=(10, 5))
+sns.lineplot(x="dteday", y="cnt_hour", data=df_merged)
+plt.title("Tren Penyewaan Sepeda")
+plt.xlabel("Tanggal")
+plt.ylabel("Jumlah Penyewa")
+plt.xticks(rotation=45)
+plt.show()
 
 # Kesimpulan
-st.write("## Kesimpulan")
-if data.empty:
-    st.warning("Tidak ada data yang sesuai dengan filter yang dipilih.")
+if df_merged.empty:
+    print("\n⚠️ Tidak ada data yang sesuai dengan filter yang dipilih.")
 else:
-    max_hari = data.loc[data["cnt_hour"].idxmax()]
-    min_hari = data.loc[data["cnt_hour"].idxmin()]
+    max_hari = df_merged.loc[df_merged["cnt_hour"].idxmax()]
+    min_hari = df_merged.loc[df_merged["cnt_hour"].idxmin()]
     
-    st.success(f"📈 Hari dengan penyewaan tertinggi: **{max_hari['dteday'].date()}** ({max_hari['cnt_hour']} penyewa)")
-    st.error(f"📉 Hari dengan penyewaan terendah: **{min_hari['dteday'].date()}** ({min_hari['cnt_hour']} penyewa)")
+    print(f"\n📈 Hari dengan penyewaan tertinggi: {max_hari['dteday'].date()} ({max_hari['cnt_hour']} penyewa)")
+    print(f"📉 Hari dengan penyewaan terendah: {min_hari['dteday'].date()} ({min_hari['cnt_hour']} penyewa)")
