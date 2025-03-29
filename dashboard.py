@@ -80,22 +80,20 @@ st.pyplot(plt)
 # --- VISUALISASI 2: Tren Penyewaan Hari Kerja vs Akhir Pekan ---
 st.subheader("🗓️ Tren Penyewaan Sepeda di Hari Kerja vs Akhir Pekan")
 
-plt.figure(figsize=(10, 5))
+plt.figure(figsize=(12, 6))
 
-# Tambahkan kolom kategori hari kerja vs akhir pekan
-hour_df['day_type'] = hour_df['workingday'].apply(lambda x: "Hari Kerja" if x == 1 else "Akhir Pekan")
+# Visualisasi dengan format seperti di Google Colab
+ax = sns.lineplot(x='hr', y='cnt', hue='workingday', data=hour_df, palette={0: 'orange', 1: 'blue'})
 
-# Hitung rata-rata penyewaan per jam
-avg_rentals_per_hour = hour_df.groupby(['hr', 'day_type'])['cnt'].mean().reset_index()
+# Ubah legenda sesuai dengan label yang benar
+legend_labels = ['Akhir Pekan', 'Hari Kerja']
+for t, l in zip(ax.legend_.texts, legend_labels):
+    t.set_text(l)
 
-# Visualisasi
-sns.lineplot(x='hr', y='cnt', hue='day_type', data=avg_rentals_per_hour, palette={"Hari Kerja": "blue", "Akhir Pekan": "red"})
-
+plt.title("Pola Penggunaan Sepeda per Jam antara Hari Kerja dan Akhir Pekan")
 plt.xlabel("Jam")
-plt.ylabel("Rata-rata Penyewaan")
-plt.title("📊 Pola Penyewaan Sepeda Berdasarkan Waktu dan Hari")
+plt.ylabel("Jumlah Penyewaan")
 plt.xticks(range(0, 24, 2))
-plt.legend(title="Jenis Hari")
 
 st.pyplot(plt)
 
