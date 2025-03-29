@@ -18,7 +18,7 @@ dataset_choice = st.sidebar.radio("Pilih Visualisasi", ["Tren Bulanan (Cuaca)", 
 if dataset_choice == "Tren Bulanan (Cuaca)":
     st.subheader("📅 Tren Penyewaan Sepeda Bulanan Berdasarkan Cuaca")
     
-    # Konversi bulan dan cuaca ke bentuk deskriptif
+    # Mapping bulan dan cuaca
     month_map = {
         1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
         7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
@@ -28,7 +28,7 @@ if dataset_choice == "Tren Bulanan (Cuaca)":
     day_df["mnth_name"] = day_df["mnth"].map(month_map)
     day_df["cuaca"] = day_df["weathersit"].map(weather_map)
     
-    # Pilihan filter
+    # Sidebar filter
     bulan_options = ["Semua Bulan"] + list(month_map.values())
     selected_bulan = st.sidebar.selectbox("Pilih Bulan", bulan_options)
     
@@ -42,15 +42,33 @@ if dataset_choice == "Tren Bulanan (Cuaca)":
     if selected_cuaca != "Semua Cuaca":
         filtered_data = filtered_data[filtered_data["cuaca"] == selected_cuaca]
     
-    # Plot
+    # Visualisasi baru
     plt.figure(figsize=(10, 5))
-    sns.lineplot(x='mnth_name', y='cnt', hue='cuaca', data=filtered_data)
-    plt.xticks(rotation=45)
-    plt.title('Tren Penyewaan Sepeda Tiap Bulan Berdasarkan Cuaca')
+
+    # Palet warna sesuai kondisi cuaca
+    palette = {1: 'blue', 2: 'gray', 3: 'red'}
+
+    sns.lineplot(x='mnth', y='cnt', hue='weathersit', data=filtered_data, palette=palette)
+
+    plt.title('Tren Penyewaan Sepeda Tiap Bulan Berdasarkan Kondisi Cuaca')
     plt.xlabel('Bulan')
     plt.ylabel('Jumlah Penyewaan')
-    plt.legend(title='Kondisi Cuaca')
-    
+
+    # Ubah legenda menjadi label deskriptif
+    weather_labels = {1: 'Cerah', 2: 'Mendung', 3: 'Hujan'}
+    handles, labels = plt.gca().get_legend_handles_labels()
+    labels = [weather_labels[int(label)] for label in labels]
+    plt.legend(handles, labels, title='Kondisi Cuaca')
+
+    # Garis vertikal untuk puncak penyewaan
+    if not filtered_data.empty:
+        max_month = filtered_data.loc[filtered_data['cnt'].idxmax(), 'mnth']
+        max_rentals = filtered_data['cnt'].max()
+        plt.axvline(x=max_month, linestyle='--', color='black', alpha=0.6)
+        plt.text(max_month, max_rentals, f'Puncak Penyewaan\nBulan {max_month}',
+                 verticalalignment='bottom', horizontalalignment='right',
+                 fontsize=10, color='black')
+
     st.pyplot(plt)
     
     st.subheader("📌 Kesimpulan")
@@ -62,19 +80,19 @@ if dataset_choice == "Tren Bulanan (Cuaca)":
 
 elif dataset_choice == "Pola Per Jam (Hari Kerja vs Akhir Pekan)":
     st.subheader("⏰ Pola Penggunaan Sepeda Per Jam (Hari Kerja vs Akhir Pekan)")
-    
+
     plt.figure(figsize=(12, 6))
     ax = sns.lineplot(x='hr', y='cnt', hue='workingday', data=hour_df, palette={0: 'orange', 1: 'blue'})
-    
+
     legend_labels = ['Akhir Pekan', 'Hari Kerja']
     for t, l in zip(ax.legend_.texts, legend_labels):
         t.set_text(l)
-    
+
     plt.title('Pola Penggunaan Sepeda per Jam antara Hari Kerja dan Akhir Pekan')
     plt.xlabel('Jam')
     plt.ylabel('Jumlah Penyewaan')
     st.pyplot(plt)
-    
+
     st.subheader("📌 Kesimpulan")
     st.write("""
     - Pada **hari kerja**, ada dua puncak penyewaan: **pagi & sore hari** (kemungkinan besar terkait perjalanan kerja/sekolah).
