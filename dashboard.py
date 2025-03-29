@@ -92,10 +92,40 @@ if dataset_choice == "Tren Bulanan (Cuaca)":
 
     # --- Kesimpulan Tren Bulanan ---
     st.subheader("📌 Kesimpulan")
-    st.write("""
-    - Penyewaan sepeda lebih tinggi saat cuaca **cerah** dan menurun saat **hujan**.
-    - Tren bulanan menunjukkan penyewaan tertinggi di bulan tertentu, yang bisa berkaitan dengan musim atau liburan.
-    - Jika memilih bulan tertentu, pola harian menunjukkan bagaimana cuaca mempengaruhi jumlah penyewaan.
+    st.markdown("""
+    **1. Tren Penggunaan Sepeda Berdasarkan Kondisi Cuaca**
+    - Penggunaan sepeda meningkat saat **cuaca cerah** dan menurun saat **hujan**.
+    - Faktor cuaca sangat berpengaruh terhadap jumlah penyewaan.
+    - Puncak penyewaan terjadi pada pertengahan tahun, kemungkinan karena **musim panas atau liburan**.
+    - Hujan menyebabkan **penurunan drastis** dalam jumlah penyewaan.
+    """)
+
+elif dataset_choice == "Pola Per Jam (Hari Kerja vs Akhir Pekan)":
+    st.subheader("📊 Pola Penggunaan Sepeda per Jam antara Hari Kerja dan Akhir Pekan")
+
+    # Visualisasi pola penggunaan sepeda antara hari kerja vs akhir pekan
+    plt.figure(figsize=(12, 6))
+    ax = sns.lineplot(x='hr', y='cnt', hue='workingday', data=hour_df, palette={0: 'orange', 1: 'blue'})
+
+    legend_labels = ['Akhir Pekan', 'Hari Kerja']
+    for t, l in zip(ax.legend_.texts, legend_labels):
+        t.set_text(l)
+
+    plt.title('Pola Penggunaan Sepeda per Jam antara Hari Kerja dan Akhir Pekan')
+    plt.xlabel('Jam')
+    plt.ylabel('Jumlah Penyewaan')
+    st.pyplot(plt)
+
+    # --- Kesimpulan Pola Per Jam ---
+    st.subheader("📌 Kesimpulan")
+    st.markdown("""
+    **2. Pola Penggunaan Sepeda per Jam antara Hari Kerja dan Akhir Pekan**
+    
+    **Hari kerja:**
+    - Terdapat **dua puncak penyewaan** di **pagi dan sore hari**, menunjukkan penggunaan sepeda untuk perjalanan kerja atau sekolah.
+    
+    **Akhir pekan:**
+    - Penyewaan meningkat lebih siang, menunjukkan bahwa sepeda lebih sering digunakan untuk **rekreasi**.
     """)
 
 # --- Footer ---
