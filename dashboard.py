@@ -31,6 +31,10 @@ if dataset_choice == "Tren Bulanan (Cuaca)":
     day_df["mnth_name"] = day_df["mnth"].map(month_map)
     day_df["cuaca"] = day_df["weathersit"].map(weather_map)
 
+    # Konversi tanggal ke format lebih ringkas
+    day_df["dteday"] = pd.to_datetime(day_df["dteday"])
+    day_df["dteday_fmt"] = day_df["dteday"].dt.strftime("%d %b")  # Contoh: "01 Jan", "15 Feb"
+
     # Sidebar filter untuk bulan dan cuaca
     bulan_options = ["Semua Bulan"] + list(month_map.values())
     selected_bulan = st.sidebar.selectbox("Pilih Bulan", bulan_options)
@@ -75,10 +79,10 @@ if dataset_choice == "Tren Bulanan (Cuaca)":
         plt.legend(handles, labels, title='Kondisi Cuaca')
 
     else:
-        # Menampilkan tren harian dalam satu bulan yang dipilih
+        # Menampilkan tren harian dalam satu bulan yang dipilih dengan format tanggal lebih ringkas
         plt.xticks(rotation=45)
         palette = {"Cerah": 'blue', "Mendung": 'gray', "Hujan": 'red'}
-        sns.lineplot(x='dteday', y='cnt', hue='cuaca', data=filtered_data, palette=palette)
+        sns.lineplot(x='dteday_fmt', y='cnt', hue='cuaca', data=filtered_data, palette=palette)
 
         plt.xlabel(f'Hari dalam {selected_bulan}')
         plt.ylabel('Jumlah Penyewaan')
@@ -92,33 +96,6 @@ if dataset_choice == "Tren Bulanan (Cuaca)":
     - Penyewaan sepeda lebih tinggi saat cuaca **cerah** dan menurun saat **hujan**.
     - Tren bulanan menunjukkan penyewaan tertinggi di bulan tertentu, yang bisa berkaitan dengan musim atau liburan.
     - Jika memilih bulan tertentu, pola harian menunjukkan bagaimana cuaca mempengaruhi jumlah penyewaan.
-    """)
-
-elif dataset_choice == "Pola Per Jam (Hari Kerja vs Akhir Pekan)":
-    st.subheader("⏰ Pola Penggunaan Sepeda Per Jam (Hari Kerja vs Akhir Pekan)")
-
-    plt.figure(figsize=(12, 6))
-
-    # Visualisasi dengan format seperti di Google Colab
-    ax = sns.lineplot(x='hr', y='cnt', hue='workingday', data=hour_df, palette={0: 'orange', 1: 'blue'})
-
-    # Ubah legenda sesuai dengan label yang benar
-    legend_labels = ['Akhir Pekan', 'Hari Kerja']
-    for t, l in zip(ax.legend_.texts, legend_labels):
-        t.set_text(l)
-
-    plt.title("Pola Penggunaan Sepeda per Jam antara Hari Kerja dan Akhir Pekan")
-    plt.xlabel("Jam")
-    plt.ylabel("Jumlah Penyewaan")
-    plt.xticks(range(0, 24, 2))
-
-    st.pyplot(plt)
-
-    # --- Kesimpulan Pola Per Jam ---
-    st.subheader("📌 Kesimpulan")
-    st.write("""
-    - **Hari kerja**: Penyewaan sepeda menunjukkan dua puncak, yaitu di **pagi dan sore hari**. Ini kemungkinan terkait perjalanan kerja/sekolah.
-    - **Akhir pekan**: Penyewaan lebih merata sepanjang hari, dengan puncaknya terjadi **di siang hari** karena lebih banyak aktivitas rekreasi.
     """)
 
 # --- Footer ---
