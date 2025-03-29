@@ -1,102 +1,68 @@
-import streamlit as st
-import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
 
-@st.cache_data
-def load_data():
-    day_df = pd.read_csv("day.csv") 
-    hour_df = pd.read_csv("hour.csv")
-    return day_df, hour_df
+# Simulasi Data (Gantilah dengan data aslinya)
+data = {
+    'mnth': list(range(1, 13)) * 3,  # 12 bulan dikalikan 3 jenis cuaca
+    'cnt': [1000 + i*300 for i in range(12)] * 3,  # Contoh jumlah penyewaan
+    'weathersit': [1] * 12 + [2] * 12 + [3] * 12  # 1: Cerah, 2: Mendung, 3: Hujan
+}
+day_df = pd.DataFrame(data)
 
-day_df, hour_df = load_data()
+# Warna untuk setiap kondisi cuaca
+palette = {1: 'blue', 2: 'gray', 3: 'red'}
+weather_labels = {1: 'Cerah', 2: 'Mendung', 3: 'Hujan'}
 
-st.title("🚴 Dashboard Analisis Penyewaan Sepeda")
+# ==== 1. Visualisasi Tren Penyewaan Tiap Bulan ====
+plt.figure(figsize=(10, 5))
+sns.lineplot(x='mnth', y='cnt', hue='weathersit', data=day_df, palette=palette)
 
-dataset_choice = st.sidebar.radio("Pilih Visualisasi", ["Tren Bulanan (Cuaca)", "Pola Per Jam (Hari Kerja vs Akhir Pekan)"])
+plt.title('Tren Penyewaan Sepeda Tiap Bulan Berdasarkan Kondisi Cuaca')
+plt.xlabel('Bulan')
+plt.ylabel('Jumlah Penyewaan')
 
-if dataset_choice == "Tren Bulanan (Cuaca)":
-    st.subheader("📅 Tren Penyewaan Sepeda Bulanan Berdasarkan Cuaca")
+# Ganti angka bulan menjadi nama bulan
+bulan_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+plt.xticks(ticks=range(1, 13), labels=bulan_labels)
 
-    # Mapping bulan dan cuaca
-    month_map = {
-        1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
-        7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
-    }
-    weather_map = {1: "Cerah", 2: "Mendung", 3: "Hujan"}
+# Ganti label legenda dengan teks cuaca
+handles, labels = plt.gca().get_legend_handles_labels()
+labels = [weather_labels[int(label)] for label in labels]
+plt.legend(handles, labels, title='Kondisi Cuaca')
 
-    day_df["mnth_name"] = day_df["mnth"].map(month_map)
-    day_df["cuaca"] = day_df["weathersit"].map(weather_map)
+# Tambahkan garis dan label untuk bulan dengan penyewaan tertinggi
+max_month = day_df.loc[day_df['cnt'].idxmax(), 'mnth']
+max_rentals = day_df['cnt'].max()
+plt.axvline(x=max_month, linestyle='--', color='black', alpha=0.6)
+plt.text(max_month, max_rentals, f'Puncak Penyewaan\nBulan {bulan_labels[max_month-1]}',
+         verticalalignment='bottom', horizontalalignment='right',
+         fontsize=10, color='black')
 
-    # Sidebar filter
-    bulan_options = ["Semua Bulan"] + list(month_map.values())
-    selected_bulan = st.sidebar.selectbox("Pilih Bulan", bulan_options)
+plt.show()
 
-    cuaca_options = ["Semua Cuaca"] + list(weather_map.values())
-    selected_cuaca = st.sidebar.selectbox("Pilih Cuaca", cuaca_options)
+# ==== 2. Visualisasi Tren Penyewaan di Bulan Tertentu (Januari) ====
+# Simulasi data harian untuk Januari
+data_jan = {
+    'day': list(range(1, 32)),  # Hari dalam Januari
+    'cnt': [1000 + i*50 for i in range(31)],  # Contoh jumlah penyewaan
+    'weathersit': [1 if i % 3 == 0 else 2 if i % 3 == 1 else 3 for i in range(31)]  # Kondisi cuaca
+}
+df_jan = pd.DataFrame(data_jan)
 
-    # Filter data
-    filtered_data = day_df.copy()
-    if selected_bulan != "Semua Bulan":
-        filtered_data = filtered_data[filtered_data["mnth_name"] == selected_bulan]
-    if selected_cuaca != "Semua Cuaca":
-        filtered_data = filtered_data[filtered_data["cuaca"] == selected_cuaca]
+plt.figure(figsize=(10, 5))
+sns.lineplot(x='day', y='cnt', hue='weathersit', data=df_jan, palette=palette)
 
-    # Visualisasi
-    plt.figure(figsize=(10, 5))
+plt.title('Tren Penyewaan Sepeda di Bulan Januari')
+plt.xlabel('Hari dalam Januari')
+plt.ylabel('Jumlah Penyewaan')
 
-    if selected_bulan == "Semua Bulan":
-        # Menampilkan seluruh bulan
-        palette = {1: 'blue', 2: 'gray', 3: 'red'}
-        sns.lineplot(x='mnth', y='cnt', hue='weathersit', data=filtered_data, palette=palette)
+# Ganti label legenda dengan teks cuaca
+handles, labels = plt.gca().get_legend_handles_labels()
+labels = [weather_labels[int(label)] for label in labels]
+plt.legend(handles, labels, title='Kondisi Cuaca')
 
-        plt.xlabel('Bulan')
-        plt.xticks(ticks=list(month_map.keys()), labels=list(month_map.values()))  # Format bulan
-    else:
-        # Jika memilih satu bulan, tampilkan distribusi harian
-        plt.xticks(rotation=45)
-        palette = {"Cerah": 'blue', "Mendung": 'gray', "Hujan": 'red'}
-        sns.lineplot(x='dteday', y='cnt', hue='cuaca', data=filtered_data, palette=palette)
+# Rotasi sumbu x agar lebih rapi
+plt.xticks(rotation=45)
 
-        plt.xlabel(f'Hari dalam {selected_bulan}')
-
-    plt.ylabel('Jumlah Penyewaan')
-    plt.title(f'Tren Penyewaan Sepeda pada {selected_bulan}' if selected_bulan != "Semua Bulan" else 'Tren Penyewaan Sepeda Tiap Bulan')
-
-    # Tambahkan legenda yang lebih deskriptif
-    handles, labels = plt.gca().get_legend_handles_labels()
-    if selected_bulan == "Semua Bulan":
-        labels = [weather_map[int(label)] for label in labels]  # Ubah angka jadi label
-    plt.legend(handles, labels, title='Kondisi Cuaca')
-
-    st.pyplot(plt)
-
-    st.subheader("📌 Kesimpulan")
-    st.write("""
-    - Penyewaan sepeda meningkat saat cuaca **cerah** dan menurun ketika **hujan**.
-    - Jika melihat tren bulanan, penyewaan bisa lebih tinggi di musim panas atau liburan.
-    - Jika memilih bulan tertentu, tren harian menunjukkan pengaruh cuaca terhadap jumlah penyewaan harian.
-    """)
-
-elif dataset_choice == "Pola Per Jam (Hari Kerja vs Akhir Pekan)":
-    st.subheader("⏰ Pola Penggunaan Sepeda Per Jam (Hari Kerja vs Akhir Pekan)")
-
-    plt.figure(figsize=(12, 6))
-    ax = sns.lineplot(x='hr', y='cnt', hue='workingday', data=hour_df, palette={0: 'orange', 1: 'blue'})
-
-    legend_labels = ['Akhir Pekan', 'Hari Kerja']
-    for t, l in zip(ax.legend_.texts, legend_labels):
-        t.set_text(l)
-
-    plt.title('Pola Penggunaan Sepeda per Jam antara Hari Kerja dan Akhir Pekan')
-    plt.xlabel('Jam')
-    plt.ylabel('Jumlah Penyewaan')
-    st.pyplot(plt)
-
-    st.subheader("📌 Kesimpulan")
-    st.write("""
-    - Pada **hari kerja**, ada dua puncak penyewaan: **pagi & sore hari** (kemungkinan besar terkait perjalanan kerja/sekolah).
-    - Pada **akhir pekan**, puncak penyewaan terjadi lebih **siang**, menunjukkan penggunaan lebih banyak untuk rekreasi.
-    """)
-
-st.sidebar.markdown("💡 **Tip:** Pilih visualisasi di sidebar untuk melihat analisisnya.")
+plt.show()
