@@ -3,8 +3,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import streamlit as st
 
-# Load data
+# Load dataset
 day_df = pd.read_csv("day.csv")
+hour_df = pd.read_csv("hour.csv")
 
 # Mapping angka ke nama bulan
 month_mapping = {
@@ -13,77 +14,106 @@ month_mapping = {
     9: "September", 10: "Oktober", 11: "November", 12: "Desember"
 }
 
+# Mapping angka ke kondisi cuaca
+weather_mapping = {
+    1: "Cerah",
+    2: "Mendung",
+    3: "Hujan"
+}
+
 # Streamlit UI
-st.title("📊 Visualisasi Tren Penyewaan Sepeda Berdasarkan Cuaca")
+st.title("📊 Analisis Penyewaan Sepeda")
 
 # Dropdown Pilih Bulan
 selected_month = st.selectbox("Pilih Bulan", ["Semua Bulan"] + list(month_mapping.values()))
 
-# Plotting
+# Dropdown Pilih Cuaca
+selected_weather = st.selectbox("Pilih Kondisi Cuaca", ["Semua Cuaca"] + list(weather_mapping.values()))
+
+# --- VISUALISASI 1: Tren Penyewaan Berdasarkan Cuaca ---
+st.subheader("🚴‍♂️ Tren Penyewaan Sepeda Berdasarkan Cuaca")
+
 plt.figure(figsize=(10, 5))
 palette = {1: 'blue', 2: 'gray', 3: 'red'}
 weather_labels = {1: 'Cerah', 2: 'Mendung', 3: 'Hujan'}
 
-if selected_month == "Semua Bulan":
-    # Visualisasi semua bulan
-    sns.lineplot(x='mnth', y='cnt', hue='weathersit', data=day_df, palette=palette)
-    
-    plt.title('📅 Tren Penyewaan Sepeda Tiap Bulan Berdasarkan Kondisi Cuaca')
-    plt.xlabel('Bulan')
-    plt.ylabel('Jumlah Penyewaan')
-
-    # Ubah label x-axis → hanya tampilkan bulan genap (2,4,6,8,10,12)
-    plt.xticks([2, 4, 6, 8, 10, 12], ['2', '4', '6', '8', '10', '12'])
-
-    # Garis vertikal pada puncak penyewaan
-    max_month = day_df.loc[day_df['cnt'].idxmax(), 'mnth']
-    max_rentals = day_df['cnt'].max()
-    plt.axvline(x=max_month, linestyle='--', color='black', alpha=0.6)
-    plt.text(max_month, max_rentals, f'📌 Puncak Penyewaan\nBulan {max_month}',
-             verticalalignment='bottom', horizontalalignment='right',
-             fontsize=10, color='black')
-
-    # 🔥 Kesimpulan untuk tren tahunan
-    peak_month = month_mapping[max_month]
-    st.markdown(f"""
-    ### 📌 **Kesimpulan:**
-    - Puncak penyewaan sepeda terjadi pada **{peak_month}**.
-    - Kemungkinan faktor: cuaca yang lebih baik atau meningkatnya aktivitas luar ruangan.
-    - Tren menunjukkan bahwa penggunaan sepeda lebih tinggi di bulan-bulan tertentu.
-    """)
-else:
-    # Konversi nama bulan ke angka
+# Filtering data sesuai pilihan pengguna
+filtered_day_df = day_df.copy()
+if selected_month != "Semua Bulan":
     selected_month_num = list(month_mapping.keys())[list(month_mapping.values()).index(selected_month)]
-    
-    # Filter data untuk bulan yang dipilih
-    filtered_df = day_df[day_df['mnth'] == selected_month_num]
-    
-    # Buat sumbu x lebih rapi (pakai hari dalam bulan, bukan format YYYY-MM-DD)
-    filtered_df['day'] = pd.to_datetime(filtered_df['dteday']).dt.day
-    
-    sns.lineplot(x='day', y='cnt', hue='weathersit', data=filtered_df, palette=palette)
-    
-    plt.title(f'📆 Tren Penyewaan Sepeda di Bulan {selected_month}')
-    plt.xlabel('Hari')
-    plt.ylabel('Jumlah Penyewaan')
-    
-    # Atur label x-axis agar hanya menampilkan beberapa angka hari
-    plt.xticks(range(1, 32, 5))
+    filtered_day_df = filtered_day_df[filtered_day_df['mnth'] == selected_month_num]
 
-    # Hari dengan penyewaan terbanyak
-    peak_day = filtered_df.loc[filtered_df['cnt'].idxmax(), 'day']
-    max_rentals_day = filtered_df['cnt'].max()
-    
-    # 🔥 Kesimpulan untuk tren bulanan
-    st.markdown(f"""
-    ### 📌 **Kesimpulan:**
-    - Puncak penyewaan di bulan **{selected_month}** terjadi pada tanggal **{peak_day}**.
-    - Cuaca sangat mempengaruhi jumlah penyewaan, terutama pada hari-hari cerah.
-    """)
+if selected_weather != "Semua Cuaca":
+    selected_weather_num = list(weather_mapping.keys())[list(weather_mapping.values()).index(selected_weather)]
+    filtered_day_df = filtered_day_df[filtered_day_df['weathersit'] == selected_weather_num]
+
+if selected_month == "Semua Bulan":
+    # Semua bulan → Tampilkan bulan genap
+    sns.lineplot(x='mnth', y='cnt', hue='weathersit', data=filtered_day_df, palette=palette)
+    plt.xticks([2, 4, 6, 8, 10, 12], ['2', '4', '6', '8', '10', '12'])
+    plt.xlabel("Bulan")
+else:
+    # Satu bulan → Tampilkan tanggal (tanpa format YYYY-MM-DD)
+    filtered_day_df['day'] = pd.to_datetime(filtered_day_df['dteday']).dt.day
+    sns.lineplot(x='day', y='cnt', hue='weathersit', data=filtered_day_df, palette=palette)
+    plt.xticks(range(1, 32, 5))
+    plt.xlabel("Hari dalam Bulan")
+
+plt.ylabel("Jumlah Penyewaan")
+plt.title(f"📅 Tren Penyewaan Sepeda di {selected_month} ({selected_weather})")
 
 # Tambah legenda
 handles, labels = plt.gca().get_legend_handles_labels()
 labels = [weather_labels[int(label)] for label in labels]
-plt.legend(handles, labels, title='Kondisi Cuaca')
+plt.legend(handles, labels, title="Kondisi Cuaca")
+
+# Garis vertikal untuk puncak penyewaan
+if not filtered_day_df.empty:
+    max_idx = filtered_day_df['cnt'].idxmax()
+    peak_x = filtered_day_df.loc[max_idx, 'mnth' if selected_month == "Semua Bulan" else 'day']
+    peak_y = filtered_day_df['cnt'].max()
+    plt.axvline(x=peak_x, linestyle='--', color='black', alpha=0.6)
+    plt.text(peak_x, peak_y, f'📌 Puncak\n({peak_x})', verticalalignment='bottom', horizontalalignment='right')
 
 st.pyplot(plt)
+
+# --- VISUALISASI 2: Tren Penyewaan Hari Kerja vs Akhir Pekan ---
+st.subheader("🗓️ Tren Penyewaan Sepeda di Hari Kerja vs Akhir Pekan")
+
+plt.figure(figsize=(10, 5))
+
+# Tambahkan kolom kategori hari kerja vs akhir pekan
+hour_df['day_type'] = hour_df['workingday'].apply(lambda x: "Hari Kerja" if x == 1 else "Akhir Pekan")
+
+# Hitung rata-rata penyewaan per jam
+avg_rentals_per_hour = hour_df.groupby(['hr', 'day_type'])['cnt'].mean().reset_index()
+
+# Visualisasi
+sns.lineplot(x='hr', y='cnt', hue='day_type', data=avg_rentals_per_hour, palette={"Hari Kerja": "blue", "Akhir Pekan": "red"})
+
+plt.xlabel("Jam")
+plt.ylabel("Rata-rata Penyewaan")
+plt.title("📊 Pola Penyewaan Sepeda Berdasarkan Waktu dan Hari")
+plt.xticks(range(0, 24, 2))
+plt.legend(title="Jenis Hari")
+
+st.pyplot(plt)
+
+# --- KESIMPULAN ---
+st.subheader("📌 Kesimpulan")
+if selected_month == "Semua Bulan":
+    peak_month = month_mapping[filtered_day_df.loc[filtered_day_df['cnt'].idxmax(), 'mnth']]
+    st.markdown(f"""
+    - Puncak penyewaan sepeda terjadi di bulan **{peak_month}**.
+    - Faktor cuaca memengaruhi pola penyewaan, terutama saat cerah.
+    - Tren penyewaan **lebih tinggi di hari kerja saat jam sibuk** (pagi & sore).
+    """)
+else:
+    peak_day = filtered_day_df.loc[filtered_day_df['cnt'].idxmax(), 'day']
+    st.markdown(f"""
+    - Di bulan **{selected_month}**, puncak penyewaan terjadi pada tanggal **{peak_day}**.
+    - Penyewaan sepeda lebih tinggi saat cuaca cerah dibanding hujan.
+    - Hari kerja memiliki pola penyewaan **lebih tinggi di pagi dan sore hari** dibanding akhir pekan.
+    """)
+
+st.success("✅ Analisis selesai! Gunakan filter untuk eksplorasi lebih lanjut.")
