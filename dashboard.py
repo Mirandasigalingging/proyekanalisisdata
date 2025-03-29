@@ -42,36 +42,49 @@ if dataset_choice == "Tren Bulanan (Cuaca)":
     if selected_cuaca != "Semua Cuaca":
         filtered_data = filtered_data[filtered_data["cuaca"] == selected_cuaca]
 
-    # Visualisasi tren penyewaan sepeda
     plt.figure(figsize=(10, 5))
 
-    if selected_bulan == "Semua Bulan":
-        # Warna sesuai pemetaan cuaca
+    if selected_bulan == "Semua Bulan" and selected_cuaca == "Semua Cuaca":
+        # **Visualisasi sesuai Google Colab**
         palette = {1: 'blue', 2: 'gray', 3: 'red'}
-        sns.lineplot(x='mnth', y='cnt', hue='weathersit', data=filtered_data, palette=palette)
+        sns.lineplot(x='mnth', y='cnt', hue='weathersit', data=day_df, palette=palette)
 
+        plt.title('Tren Penggunaan Sepeda Tiap Bulan Berdasarkan Kondisi Cuaca')
         plt.xlabel('Bulan')
+        plt.ylabel('Jumlah Penyewaan')
         plt.xticks(ticks=list(month_map.keys()), labels=list(month_map.values()))  # Format bulan
+
+        # Menampilkan puncak penyewaan
+        max_month = day_df.loc[day_df['cnt'].idxmax(), 'mnth']
+        max_rentals = day_df['cnt'].max()
+        plt.axvline(x=max_month, linestyle='--', color='black', alpha=0.6)
+        plt.text(max_month, max_rentals, f'Puncak Penyewaan\nBulan {month_map[max_month]}',
+                 verticalalignment='bottom', horizontalalignment='right',
+                 fontsize=10, color='black')
+
+        # Menyesuaikan legenda
+        handles, labels = plt.gca().get_legend_handles_labels()
+        labels = [weather_map[int(label)] for label in labels]
+        plt.legend(handles, labels, title='Kondisi Cuaca')
+
     else:
-        # Jika memilih satu bulan, tampilkan tren harian
-        plt.xticks(rotation=45)
+        # **Jika memilih bulan tertentu, tampilkan tren harian dengan format tanggal lebih rapi**
         palette = {"Cerah": 'blue', "Mendung": 'gray', "Hujan": 'red'}
-        sns.lineplot(x='dteday', y='cnt', hue='cuaca', data=filtered_data, palette=palette)
+        filtered_data['day'] = filtered_data['dteday'].str[-2:]  # Hanya ambil tanggal tanpa tahun
 
+        sns.lineplot(x='day', y='cnt', hue='cuaca', data=filtered_data, palette=palette)
+
+        plt.title(f'Tren Penyewaan Sepeda di {selected_bulan}')
         plt.xlabel(f'Hari dalam {selected_bulan}')
+        plt.ylabel('Jumlah Penyewaan')
+        plt.xticks(rotation=45)  # Mencegah tulisan tanggal bertabrakan
 
-    plt.ylabel('Jumlah Penyewaan')
-    plt.title(f'Tren Penyewaan Sepeda pada {selected_bulan}' if selected_bulan != "Semua Bulan" else 'Tren Penyewaan Sepeda Tiap Bulan')
-
-    # Memperbaiki legenda agar lebih jelas
-    handles, labels = plt.gca().get_legend_handles_labels()
-    if selected_bulan == "Semua Bulan":
-        labels = [weather_map[int(label)] for label in labels]  # Ubah angka jadi label
-    plt.legend(handles, labels, title='Kondisi Cuaca')
+        # Menyesuaikan legenda
+        plt.legend(title='Kondisi Cuaca')
 
     st.pyplot(plt)
 
-    # Menyesuaikan kesimpulan agar lebih deskriptif
+    # **Kesimpulan**
     st.subheader("📌 Kesimpulan")
     st.write("""
     - Penyewaan sepeda **lebih tinggi saat cuaca cerah** dan **menurun saat hujan**.
@@ -95,7 +108,7 @@ elif dataset_choice == "Pola Per Jam (Hari Kerja vs Akhir Pekan)":
     plt.ylabel('Jumlah Penyewaan')
     st.pyplot(plt)
 
-    # Menyederhanakan kesimpulan agar lebih jelas
+    # **Kesimpulan**
     st.subheader("📌 Kesimpulan")
     st.write("""
     - **Hari kerja**: Pola penyewaan membentuk **dua puncak utama** (pagi dan sore hari), kemungkinan besar terkait jam perjalanan kerja atau sekolah.
